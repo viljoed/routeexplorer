@@ -94,3 +94,20 @@ npx serve .
 
 Playback traverses the full route in ~12 seconds by default
 (adjustable via `PLAY_DURATION` at the top of the script).
+
+Here is the prompt used to start this development:
+
+I would like to create an application that displays a gpx file on a map on the top, 
+the route elevation profile in the middle, and images along the route at the bottom, with a slider 
+control below the images that allows the user to move the position along
+the route similar to the frame control on video players.  It would move a marker along the map, profile, 
+and choose the image to display.
+
+Each data folder contains a gpx, an images sub-folder containing street view images along the route, 
+an image_file_locations.csv containing x,y,z,image_file_name.  Some locations may not have images.
+
+The application would present the list of folders in a side panel.  Selecting the name of the folder
+would load the map and profile, with location marker at the beginning of the route and displaying the
+image at that location if it exists. 
+
+Can you help me develop this?
