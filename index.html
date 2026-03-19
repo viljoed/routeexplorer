@@ -352,7 +352,7 @@ const ROUTES_PATH   = 'Routes';
 const IMG_THRESHOLD = 250;    // metres — how close the scrubber must be to show an image
 const SCRUBBER_RES  = 10000;  // range input steps
 const PLAY_MS       = 50;     // ms per play tick
-const PLAY_DURATION = 120000;  // ms to traverse entire route during playback
+const PLAY_DURATION = 12000;  // ms to traverse entire route during playback
 
 // ── State ─────────────────────────────────────────────────────
 const S = {
@@ -467,23 +467,38 @@ async function loadRoute(name, allNames) {
   const base = `${ROUTES_PATH}/${encodeURIComponent(name)}`;
 
   // ── Find & fetch the GPX ─────────────────────────────
-  // Scan the directory listing for any .gpx file — works regardless of filename.
+  // 1. Try route_info.json (required on GitHub Pages, no directory listing).
+  // 2. Fall back to scanning the directory listing (works on local servers).
   let gpxText = null;
   try {
-    const dirR = await fetch(`${base}/`);
-    if (dirR.ok) {
-      const dirHtml = await dirR.text();
-      const doc = new DOMParser().parseFromString(dirHtml, 'text/html');
-      for (const a of doc.querySelectorAll('a[href]')) {
-        const href = decodeURIComponent(a.getAttribute('href') || '');
-        const fname = href.replace(/\/$/, '').split('/').pop();
-        if (fname.toLowerCase().endsWith('.gpx')) {
-          const r2 = await fetch(`${base}/${encodeURIComponent(fname)}`);
-          if (r2.ok) { gpxText = await r2.text(); break; }
-        }
+    const infoR = await fetch(`${base}/route_info.json`);
+    if (infoR.ok) {
+      const info = await infoR.json();
+      if (info.gpx) {
+        const r2 = await fetch(`${base}/${encodeURIComponent(info.gpx)}`);
+        if (r2.ok) gpxText = await r2.text();
       }
     }
   } catch(_) {}
+
+  // Directory listing fallback (local server)
+  if (!gpxText) {
+    try {
+      const dirR = await fetch(`${base}/`);
+      if (dirR.ok) {
+        const dirHtml = await dirR.text();
+        const doc = new DOMParser().parseFromString(dirHtml, 'text/html');
+        for (const a of doc.querySelectorAll('a[href]')) {
+          const href = decodeURIComponent(a.getAttribute('href') || '');
+          const fname = href.replace(/\/$/, '').split('/').pop();
+          if (fname.toLowerCase().endsWith('.gpx')) {
+            const r2 = await fetch(`${base}/${encodeURIComponent(fname)}`);
+            if (r2.ok) { gpxText = await r2.text(); break; }
+          }
+        }
+      }
+    } catch(_) {}
+  }
 
   setLoadingBar(30);
 
