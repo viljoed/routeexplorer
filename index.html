@@ -26,13 +26,13 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; background: var(--bg);
+html, body { height: 100%; background: var(--bg);
              color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; }
 
 /* ══════════════════════════════════════
    LAYOUT
 ══════════════════════════════════════ */
-#shell { display: flex; height: 100vh; overflow: hidden; }
+#shell { display: flex; height: 100vh; overflow: hidden; min-height: 0; }
 
 /* ══════════════════════════════════════
    SIDEBAR
@@ -151,12 +151,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg);
 .stat-pill b { color: var(--accent); font-weight: 500; }
 
 /* ── Map ── */
-#map-wrap { flex: 0 0 37%; min-height: 160px; border-bottom: 1px solid var(--border); }
+#map-wrap { flex: 0 0 37%; min-height: 160px; max-height: 340px; border-bottom: 1px solid var(--border); }
 #map { width: 100%; height: 100%; }
 
 /* ── Elevation ── */
 #profile-wrap {
-  flex: 0 0 18%; min-height: 90px;
+  flex: 0 0 18%; min-height: 80px; max-height: 150px;
   background: var(--surface); border-bottom: 1px solid var(--border);
   position: relative; padding: 6px 14px 4px;
 }
@@ -171,9 +171,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg);
 /* ── Image area ── */
 #image-area {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  position: relative; overflow: hidden; background: #0a0c10; min-height: 0;
+  position: relative; overflow: hidden; background: #0a0c10; min-height: 120px;
 }
-#route-image { max-width: 100%; max-height: 100%; object-fit: contain; display: none; }
+#route-image { max-width: 100%; max-height: 100%; object-fit: contain; display: none; transition: opacity 0.15s; }
+#route-image:hover { opacity: 0.88; }
 
 #no-image-msg {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
@@ -258,6 +259,28 @@ html, body { height: 100%; overflow: hidden; background: var(--bg);
 .end-dot   { width:10px;height:10px;background:#e84b6a;border:2px solid #fff;border-radius:50%;opacity:.85; }
 
 * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+/* ── Tablet / small screen (iPad portrait ~768px tall) ── */
+@media (max-height: 850px) {
+  #map-wrap    { flex: 0 0 280px; max-height: 280px; }
+  #profile-wrap { flex: 0 0 120px; max-height: 120px; }
+}
+
+@media (max-height: 680px) {
+  #map-wrap    { flex: 0 0 220px; max-height: 220px; }
+  #profile-wrap { flex: 0 0 100px; max-height: 100px; }
+  #topbar      { min-height: 36px; padding: 5px 14px; }
+  #scrubber-wrap { padding: 6px 14px 10px; }
+  #scrubber-controls { margin-bottom: 6px; }
+}
+
+/* On narrow screens collapse sidebar to icon strip or hide it */
+@media (max-width: 600px) {
+  :root { --sidebar-w: 48px; }
+  #sidebar-header h2, #sidebar-header p, #routes-label, .route-item span { display: none; }
+  .route-item { justify-content: center; padding: 10px 0; }
+  #stats-bar  { display: none !important; }
+}
+
 </style>
 </head>
 <body>
@@ -348,7 +371,13 @@ html, body { height: 100%; overflow: hidden; background: var(--bg);
 ═══════════════════════════════════════════════════════════════ */
 
 // ── Config ────────────────────────────────────────────────────
-const ROUTES_PATH   = 'Routes';
+const ROUTES_PATH  = 'Routes';
+
+// URL parameter: ?routes=adv  →  Routes/adv_index.json
+// No parameter  →  Routes/demo_index.json
+// e.g. index.html?routes=adv   index.html?routes=girona
+const _routesParam  = new URLSearchParams(window.location.search).get('routes');
+const ROUTES_INDEX  = _routesParam ? `${_routesParam}_index.json` : 'demo_index.json';
 const IMG_THRESHOLD = 250;    // metres — how close the scrubber must be to show an image
 const SCRUBBER_RES  = 10000;  // range input steps
 const PLAY_MS       = 50;     // ms per play tick
@@ -391,7 +420,7 @@ async function init() {
 
   // 1. Try Routes/routes_index.json  (user-authored list)
   try {
-    const r = await fetch(`${ROUTES_PATH}/routes_index.json`);
+    const r = await fetch(`${ROUTES_PATH}/${ROUTES_INDEX}`);
     if (r.ok) names = await r.json();
   } catch(_) {}
 
@@ -407,7 +436,7 @@ async function init() {
   if (!names.length) {
     msgEl.innerHTML =
       `No routes found.<br><br>
-       Create <code>Routes/routes_index.json</code><br>
+       Create <code>Routes/${ROUTES_INDEX}</code><br>
        listing your route folder names,<br>
        or enable directory listing on<br>
        your local server.<br><br>
@@ -532,9 +561,9 @@ async function loadRoute(name, allNames) {
       });
       for (const row of parsed.data) {
         if (row.length < 4) continue;
-        const lon  = parseFloat(row[0]);
-        const lat  = parseFloat(row[1]);
-        const ele  = parseFloat(row[2]);
+        const lon   = parseFloat(row[0]);
+        const lat   = parseFloat(row[1]);
+        const ele   = parseFloat(row[2]);
         const fname = String(row[3]).trim();
         if (isNaN(lat) || isNaN(lon) || !fname) continue;
         const dist = nearestDist(pts, lat, lon);
@@ -622,6 +651,29 @@ function nearestDist(pts, lat, lon) {
     if (d < best) { best = d; bestD = p.dist; }
   }
   return bestD;
+}
+
+/** Compute compass bearing (0-360°) from the GPX track at a given distance (metres). */
+function headingAtDist(dist_m) {
+  const pts = S.gpxPoints;
+  if (pts.length < 2) return 0;
+  // Find the segment that contains dist_m
+  let i = 1;
+  for (; i < pts.length - 1; i++) {
+    if (pts[i].dist >= dist_m) break;
+  }
+  const a = pts[i - 1], b = pts[i];
+  return bearingDeg(a.lat, a.lon, b.lat, b.lon);
+}
+
+/** Compute compass bearing in degrees from point A to point B. */
+function bearingDeg(lat1, lon1, lat2, lon2) {
+  const r = Math.PI / 180;
+  const dLon = (lon2 - lon1) * r;
+  const x = Math.sin(dLon) * Math.cos(lat2 * r);
+  const y = Math.cos(lat1 * r) * Math.sin(lat2 * r)
+          - Math.sin(lat1 * r) * Math.cos(lat2 * r) * Math.cos(dLon);
+  return (Math.atan2(x, y) * 180 / Math.PI + 360) % 360;
 }
 
 function interpolate(pos01) {
@@ -795,8 +847,16 @@ function showImage(pos01) {
   if (nearest && bestD <= IMG_THRESHOLD) {
     imgEl.src = nearest.url;
     imgEl.style.display = 'block';
+    imgEl.style.cursor = 'pointer';
+    imgEl.title = 'Click to open in Google Street View';
+    // Compute heading from GPX track at this position
+    const svHeading = headingAtDist(nearest.dist);
+    const svUrl = `https://www.google.com/maps/@?api=1&map_action=pano`
+      + `&viewpoint=${nearest.lat},${nearest.lon}&heading=${svHeading}`;
+    imgEl.onclick = () => window.open(svUrl, '_blank');
     noImg.style.display = 'none';
-    meta.textContent = `${nearest.fname}  ·  ${fmtDist(nearest.dist)}`;
+    meta.innerHTML = `${nearest.fname}  ·  ${fmtDist(nearest.dist)}`
+      + `  <span style="color:var(--accent);margin-left:6px" title="Open in Street View">↗ Street View</span>`;
     meta.style.display = 'block';
   } else {
     imgEl.style.display = 'none';
