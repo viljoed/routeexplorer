@@ -352,7 +352,7 @@ const ROUTES_PATH   = 'Routes';
 const IMG_THRESHOLD = 250;    // metres — how close the scrubber must be to show an image
 const SCRUBBER_RES  = 10000;  // range input steps
 const PLAY_MS       = 50;     // ms per play tick
-const PLAY_DURATION = 12000;  // ms to traverse entire route during playback
+const PLAY_DURATION = 120000;  // ms to traverse entire route during playback
 
 // ── State ─────────────────────────────────────────────────────
 const S = {
@@ -467,34 +467,23 @@ async function loadRoute(name, allNames) {
   const base = `${ROUTES_PATH}/${encodeURIComponent(name)}`;
 
   // ── Find & fetch the GPX ─────────────────────────────
+  // Scan the directory listing for any .gpx file — works regardless of filename.
   let gpxText = null;
-
-  // Common candidate filenames
-  for (const fname of ['route.gpx', 'track.gpx', `${name}.gpx`]) {
-    try {
-      const r = await fetch(`${base}/${encodeURIComponent(fname)}`);
-      if (r.ok) { gpxText = await r.text(); break; }
-    } catch(_) {}
-  }
-
-  // Last resort: parse directory listing to find any .gpx
-  if (!gpxText) {
-    try {
-      const r = await fetch(`${base}/`);
-      if (r.ok) {
-        const listed = parseDirListing(await r.text());
-        // parseDirListing strips extensions — refetch raw links
-        const doc = new DOMParser().parseFromString(await (await fetch(`${base}/`)).text(), 'text/html');
-        for (const a of doc.querySelectorAll('a[href]')) {
-          const h = a.getAttribute('href');
-          if (h.toLowerCase().endsWith('.gpx')) {
-            const r2 = await fetch(`${base}/${h}`);
-            if (r2.ok) { gpxText = await r2.text(); break; }
-          }
+  try {
+    const dirR = await fetch(`${base}/`);
+    if (dirR.ok) {
+      const dirHtml = await dirR.text();
+      const doc = new DOMParser().parseFromString(dirHtml, 'text/html');
+      for (const a of doc.querySelectorAll('a[href]')) {
+        const href = decodeURIComponent(a.getAttribute('href') || '');
+        const fname = href.replace(/\/$/, '').split('/').pop();
+        if (fname.toLowerCase().endsWith('.gpx')) {
+          const r2 = await fetch(`${base}/${encodeURIComponent(fname)}`);
+          if (r2.ok) { gpxText = await r2.text(); break; }
         }
       }
-    } catch(_) {}
-  }
+    }
+  } catch(_) {}
 
   setLoadingBar(30);
 
