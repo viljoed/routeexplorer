@@ -423,10 +423,18 @@ function parseDirListing(html) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const names = [];
   for (const a of doc.querySelectorAll('a[href]')) {
-    let h = a.getAttribute('href').replace(/\/$/, '');
-    h = h.split('/').pop();
-    if (!h || h.startsWith('?') || h.startsWith('.') || h.includes('.')) continue;
-    names.push(decodeURIComponent(h));
+    const raw = a.getAttribute('href');
+    // Strip trailing slash then take the last path segment
+    let h = decodeURIComponent(raw.replace(/\/$/, '').split('/').pop());
+    // Skip: empty, query strings, parent refs, dotfiles, anything with an extension,
+    // and the Routes folder itself appearing as an entry
+    if (!h) continue;
+    if (h.startsWith('?')) continue;
+    if (h.startsWith('.')) continue;       // .., .hidden
+    if (h.includes('.')) continue;         // files (extensions)
+    if (h === ROUTES_PATH) continue;       // skip "Routes" itself
+    if (h === ROUTES_PATH.toLowerCase()) continue;
+    names.push(h);
   }
   return names;
 }

@@ -8,7 +8,6 @@ Place `index.html` at your project root. The `Routes` folder sits beside it:
 project-root/
 ├── index.html
 └── Routes/
-    ├── routes_index.json          ← required — lists your route folder names
     ├── Montagne-Noire/
     │   ├── route.gpx              ← any single .gpx file (name doesn't matter)
     │   ├── image_file_locations.csv
@@ -24,10 +23,13 @@ project-root/
 
 ---
 
-## routes_index.json
+## routes_index.json (optional)
 
-This file tells the app which sub-folders to list in the sidebar.
-It is a simple JSON array of folder names — the names must match exactly:
+The app discovers route folders automatically by reading the `Routes/` directory
+listing served by your local web server. No index file is needed.
+
+If your server does **not** serve directory listings, you can create this file
+as a fallback. It is a simple JSON array of folder names matching exactly:
 
 ```json
 ["Montagne-Noire", "Canal-du-Midi", "Another Route"]
