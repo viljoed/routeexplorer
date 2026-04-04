@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gpx creator="StravaGPX" version="1.1" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
  <metadata>
-  <name>A20_VillsurLot_Agen</name>
+  <name>ADV20_VillsurLot_Agen</name>
   <author>
    <name>David Viljoen</name>
    <link href="https://www.strava.com/athletes/2421652"/>
@@ -13,7 +13,7 @@
   <link href="https://www.strava.com/routes/3465532304709295996"/>
  </metadata>
  <trk>
-  <name>A20_VillsurLot_Agen</name>
+  <name>ADV20_VillsurLot_Agen</name>
   <link href="https://www.strava.com/routes/3465532304709295996"/>
   <type>cycling</type>
   <trkseg>
@@ -3173,8 +3173,8 @@
    <trkpt lat="44.20911" lon="0.6104400000000001">
     <ele>52.96000000000001</ele>
    </trkpt>
-   <trkpt lat="44.209320000000005" lon="0.6111800000000001">
-    <ele>57.32</ele>
+   <trkpt lat="44.20933" lon="0.6111700000000001">
+    <ele>57.040000000000006</ele>
    </trkpt>
    <trkpt lat="44.209030000000006" lon="0.61129">
     <ele>57.35</ele>
@@ -3230,20 +3230,11 @@
    <trkpt lat="44.204330000000006" lon="0.61338">
     <ele>49.17</ele>
    </trkpt>
-   <trkpt lat="44.204405001973434" lon="0.6140599987407165">
-    <ele>49.35</ele>
+   <trkpt lat="44.203680000000006" lon="0.61329">
+    <ele>51.53000000000001</ele>
    </trkpt>
-   <trkpt lat="44.204480000000004" lon="0.6147400000000001">
-    <ele>49.260000000000005</ele>
-   </trkpt>
-   <trkpt lat="44.20463000517" lon="0.6158299971368365">
-    <ele>49.760000000000005</ele>
-   </trkpt>
-   <trkpt lat="44.20478000000001" lon="0.61692">
-    <ele>50.910000000000004</ele>
-   </trkpt>
-   <trkpt lat="44.20468" lon="0.6169">
-    <ele>50.97</ele>
+   <trkpt lat="44.20364000000001" lon="0.61355">
+    <ele>52.910000000000004</ele>
    </trkpt>
   </trkseg>
  </trk>
