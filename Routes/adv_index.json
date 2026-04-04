@@ -1,1 +1,24 @@
-["ADV__Sarlat_LeCoux", "ADV_Day15", "ADV_Day16", "ADV_Day17", "ADV01_Girona_Roses", "ADV02_Roses_Portbou", "ADV03_Portbou_Bages", "ADV04_Bages_St_Paul", "ADV05_St_Paul_Bugarach", "ADV06_Bugarach_Bram", "ADV07_Bram_Lavaur", "ADV08_Lavaur_Gaillac", "ADV09_Gaillac_St_Antonin", "ADV10_St_Antonin_Cajarc", "ADV11_Cajarc_Cahors", "ADV12_Cahors_Gourdon", "ADV13_Gourdon-Sarlat", "ADV14_EyziesLoop", "ADV18_LeCoux_Monpazier", "ADV19_Monpazier_VillsurLot", "ADV20_VillsurLot_Agen", "ADV21_Agen_Moissac", "ADV22_Moissac_Toulouse", "ADV99_Mystery"]
+[
+    "ADV01_Girona-Roses",
+    "ADV02-Roses-Cerberes",
+    "ADV03_Cerbere-Bages",
+    "ADV04_Bages-St-Paul",
+    "ADV05_St-Paul-Rennes-les-Bains",
+    "ADV06_Rennes-les-Bains-Bram",
+    "ADV07_Bram-St_Felix",
+    "ADV08_StFelix_Gaillac",
+    "ADV09_Gaillac-St_Antonin",
+    "ADV10_St_Antonin-Cajarc",
+    "ADV11_Cajarc-Cahors",
+    "ADV12_Cahors-Gourdon",
+    "ADV13_Gourdon-Sarlat",
+    "ADV14_EyziesLoop",
+    "ADV15_Sarlat_Beynac",
+    "ADV17_Beynac_Coux",
+    "ADV18_LeCoux_Monpazier",
+    "ADV19_Monpazier_VillsurLot",
+    "ADV20_ShortVillsurLot_Agen",
+    "ADV20_VillsurLot_Agen",
+    "ADV21_Agen_Moissac",
+    "ADV22_Moissac_Toulouse"
+]
