@@ -23,6 +23,7 @@
   --text:      #d4d8e8;
   --muted:     #6b7399;
   --sidebar-w: 230px;
+  --sidebar-collapsed-w: 44px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -45,10 +46,93 @@ html, body { height: 100%; background: var(--bg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: width 0.25s ease, min-width 0.25s ease;
+  position: relative;
+  z-index: 100;
+}
+
+#sidebar.collapsed {
+  width: var(--sidebar-collapsed-w);
+  min-width: var(--sidebar-collapsed-w);
+}
+
+/* Toggle button */
+#sidebar-toggle {
+  position: absolute;
+  top: 10px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  z-index: 10;
+  transition: color 0.13s, border-color 0.13s;
+  user-select: none;
+}
+#sidebar-toggle:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Collapsed tab — shown only when sidebar is collapsed */
+#sidebar-tab {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 10px;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+#sidebar.collapsed #sidebar-tab { display: flex; }
+#sidebar.collapsed #sidebar-inner { display: none; }
+
+#sidebar-tab-btn {
+  width: 30px;
+  height: 30px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.13s, border-color 0.13s;
+  user-select: none;
+}
+#sidebar-tab-btn:hover { border-color: var(--accent); }
+
+#sidebar-tab-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  margin-top: 4px;
+}
+
+/* Inner content (shown when expanded) */
+#sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
 #sidebar-header {
-  padding: 18px 16px 14px;
+  padding: 18px 42px 14px 16px; /* right padding for toggle button */
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -275,9 +359,7 @@ html, body { height: 100%; background: var(--bg);
 
 /* On narrow screens collapse sidebar to icon strip or hide it */
 @media (max-width: 600px) {
-  :root { --sidebar-w: 48px; }
-  #sidebar-header h2, #sidebar-header p, #routes-label, .route-item span { display: none; }
-  .route-item { justify-content: center; padding: 10px 0; }
+  #sidebar-header h2, #sidebar-header p, #routes-label { display: none; }
   #stats-bar  { display: none !important; }
 }
 
@@ -288,13 +370,25 @@ html, body { height: 100%; background: var(--bg);
 
   <!-- ══ SIDEBAR ══ -->
   <div id="sidebar">
-    <div id="sidebar-header">
-      <h2>Route<br>Explorer</h2>
-      <p>GPX · Elevation · Images</p>
+    <!-- Toggle button (visible when expanded) -->
+    <button id="sidebar-toggle" title="Collapse panel">‹</button>
+
+    <!-- Collapsed tab (visible when collapsed) -->
+    <div id="sidebar-tab">
+      <div id="sidebar-tab-btn" title="Expand panel">›</div>
+      <div id="sidebar-tab-label">Routes</div>
     </div>
-    <div id="routes-label">Routes</div>
-    <div id="route-list">
-      <div id="sidebar-msg">Scanning Routes/…</div>
+
+    <!-- Expanded inner content -->
+    <div id="sidebar-inner">
+      <div id="sidebar-header">
+        <h2>Route<br>Explorer</h2>
+        <p>GPX · Elevation · Images</p>
+      </div>
+      <div id="routes-label">Routes</div>
+      <div id="route-list">
+        <div id="sidebar-msg">Scanning Routes/…</div>
+      </div>
     </div>
   </div>
 
@@ -477,7 +571,7 @@ function renderSidebar(names) {
   for (const name of names) {
     const div = document.createElement('div');
     div.className = 'route-item' + (name === S.active ? ' active' : '');
-    div.innerHTML = `<span class="route-icon">🗂</span><span>${escHtml(name)}</span>`;
+    div.innerHTML = `<span>${escHtml(name)}</span>`;
     div.addEventListener('click', () => loadRoute(name, names));
     list.appendChild(div);
   }
@@ -613,6 +707,9 @@ async function loadRoute(name, allNames) {
 
   setLoadingBar(100);
   setTimeout(() => setLoadingBar(0), 400);
+  setSidebarCollapsed(true);
+  // Auto-collapse sidebar so map fills screen
+
 
   // ── Snap to start ─────────────────────────────────────
   setPosition(0);
@@ -946,6 +1043,30 @@ function setLoadingBar(pct) {
 }
 function fmtDist(m) { return m >= 1000 ? (m/1000).toFixed(2)+' km' : Math.round(m)+' m'; }
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Sidebar collapse ──────────────────────────────────────────
+function setSidebarCollapsed(collapsed) {
+  const sidebar = $('sidebar');
+  const toggleBtn = $('sidebar-toggle');
+  if (collapsed) {
+    sidebar.classList.add('collapsed');
+    toggleBtn.textContent = '›';
+    toggleBtn.title = 'Expand panel';
+  } else {
+    sidebar.classList.remove('collapsed');
+    toggleBtn.textContent = '‹';
+    toggleBtn.title = 'Collapse panel';
+  }
+  // Notify map to resize after transition
+  setTimeout(() => { if (map) map.invalidateSize(); }, 260);
+}
+
+$('sidebar-toggle').addEventListener('click', () => {
+  setSidebarCollapsed(!$('sidebar').classList.contains('collapsed'));
+});
+$('sidebar-tab-btn').addEventListener('click', () => {
+  setSidebarCollapsed(false);
+});
 
 // ── Boot ──────────────────────────────────────────────────────
 init();
