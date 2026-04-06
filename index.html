@@ -52,87 +52,21 @@ html, body { height: 100%; background: var(--bg);
 }
 
 #sidebar.collapsed {
-  width: var(--sidebar-collapsed-w);
-  min-width: var(--sidebar-collapsed-w);
+  width: 0;
+  min-width: 0;
+  border-right: none;
 }
 
-/* Toggle button */
-#sidebar-toggle {
-  position: absolute;
-  top: 10px;
-  right: 8px;
-  width: 26px;
-  height: 26px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--muted);
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  z-index: 10;
-  transition: color 0.13s, border-color 0.13s;
-  user-select: none;
-}
-#sidebar-toggle:hover { color: var(--accent); border-color: var(--accent); }
-
-/* Collapsed tab — shown only when sidebar is collapsed */
-#sidebar-tab {
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 10px;
-  gap: 6px;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-#sidebar.collapsed #sidebar-tab { display: flex; }
-#sidebar.collapsed #sidebar-inner { display: none; }
-
-#sidebar-tab-btn {
-  width: 30px;
-  height: 30px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--accent);
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: color 0.13s, border-color 0.13s;
-  user-select: none;
-}
-#sidebar-tab-btn:hover { border-color: var(--accent); }
-
-#sidebar-tab-label {
-  font-family: 'DM Mono', monospace;
-  font-size: 9px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  transform: rotate(180deg);
-  margin-top: 4px;
-}
-
-/* Inner content (shown when expanded) */
 #sidebar-inner {
   display: flex;
   flex-direction: column;
   flex: 1;
   overflow: hidden;
+  width: var(--sidebar-w);  /* keep inner fixed so content doesn't squish during transition */
 }
 
 #sidebar-header {
-  padding: 18px 42px 14px 16px; /* right padding for toggle button */
+  padding: 18px 16px 14px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -193,6 +127,30 @@ html, body { height: 100%; background: var(--bg);
   color: var(--muted);
   line-height: 1.8;
 }
+
+/* Routes button in topbar */
+#btn-routes {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--accent);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 0 12px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: border-color 0.13s, background 0.13s;
+  user-select: none;
+}
+#btn-routes:hover  { border-color: var(--accent); background: var(--surface); }
+#btn-routes.active { border-color: var(--accent); background: var(--surface); }
 
 /* ══════════════════════════════════════
    MAIN
@@ -357,10 +315,9 @@ html, body { height: 100%; background: var(--bg);
   #scrubber-controls { margin-bottom: 6px; }
 }
 
-/* On narrow screens collapse sidebar to icon strip or hide it */
+/* On narrow screens hide stats bar */
 @media (max-width: 600px) {
-  #sidebar-header h2, #sidebar-header p, #routes-label { display: none; }
-  #stats-bar  { display: none !important; }
+  #stats-bar { display: none !important; }
 }
 
 </style>
@@ -369,17 +326,7 @@ html, body { height: 100%; background: var(--bg);
 <div id="shell">
 
   <!-- ══ SIDEBAR ══ -->
-  <div id="sidebar">
-    <!-- Toggle button (visible when expanded) -->
-    <button id="sidebar-toggle" title="Collapse panel">‹</button>
-
-    <!-- Collapsed tab (visible when collapsed) -->
-    <div id="sidebar-tab">
-      <div id="sidebar-tab-btn" title="Expand panel">›</div>
-      <div id="sidebar-tab-label">Routes</div>
-    </div>
-
-    <!-- Expanded inner content -->
+  <div id="sidebar" class="collapsed">
     <div id="sidebar-inner">
       <div id="sidebar-header">
         <h2>Route<br>Explorer</h2>
@@ -397,6 +344,7 @@ html, body { height: 100%; background: var(--bg);
     <div id="loading-bar"></div>
 
     <div id="topbar">
+      <button id="btn-routes" title="Select route">🗺 Routes</button>
       <div id="route-title">Select a route</div>
       <div id="stats-bar">
         <div class="stat-pill">↔&nbsp;<b id="s-dist">—</b></div>
@@ -945,15 +893,39 @@ function showImage(pos01) {
     imgEl.src = nearest.url;
     imgEl.style.display = 'block';
     imgEl.style.cursor = 'pointer';
-    imgEl.title = 'Click to open in Google Street View';
+    imgEl.title = 'Tap to open in Google Maps';
     // Compute heading from GPX track at this position
     const svHeading = headingAtDist(nearest.dist);
-    const svUrl = `https://www.google.com/maps/@?api=1&map_action=pano`
-      + `&viewpoint=${nearest.lat},${nearest.lon}&heading=${svHeading}`;
-    imgEl.onclick = () => window.open(svUrl, '_blank');
+    // comgooglemaps:// opens the Maps app directly on iPhone;
+    // falls back to browser Google Maps if app not installed.
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const appUrl     = `comgooglemaps://?center=${nearest.lat},${nearest.lon}&views=streetview&heading=${svHeading}`;
+    const browserUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${nearest.lat},${nearest.lon}&heading=${svHeading}`;
+    imgEl.onclick = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (isMobile) {
+        // Try the app URL via hidden iframe; if Maps isn't installed
+        // the page stays visible and the fallback timer opens the browser.
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        iframe.src = appUrl;
+        const fallbackTimer = setTimeout(() => {
+          document.body.contains(iframe) && document.body.removeChild(iframe);
+          window.open(browserUrl, '_blank');
+        }, 1500);
+        // App launched — page loses focus, cancel the fallback
+        window.addEventListener('blur', () => {
+          clearTimeout(fallbackTimer);
+          setTimeout(() => document.body.contains(iframe) && document.body.removeChild(iframe), 2000);
+        }, { once: true });
+      } else {
+        window.open(browserUrl, '_blank');
+      }
+    };
     noImg.style.display = 'none';
     meta.innerHTML = `${nearest.fname}  ·  ${fmtDist(nearest.dist)}`
-      + `  <span style="color:var(--accent);margin-left:6px" title="Open in Street View">↗ Street View</span>`;
+      + `  <span style="color:var(--accent);margin-left:6px" title="Open in Google Maps">↗ Maps</span>`;
     meta.style.display = 'block';
   } else {
     imgEl.style.display = 'none';
@@ -1047,25 +1019,19 @@ function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 // ── Sidebar collapse ──────────────────────────────────────────
 function setSidebarCollapsed(collapsed) {
   const sidebar = $('sidebar');
-  const toggleBtn = $('sidebar-toggle');
+  const btn = $('btn-routes');
   if (collapsed) {
     sidebar.classList.add('collapsed');
-    toggleBtn.textContent = '›';
-    toggleBtn.title = 'Expand panel';
+    btn.classList.remove('active');
   } else {
     sidebar.classList.remove('collapsed');
-    toggleBtn.textContent = '‹';
-    toggleBtn.title = 'Collapse panel';
+    btn.classList.add('active');
   }
-  // Notify map to resize after transition
   setTimeout(() => { if (map) map.invalidateSize(); }, 260);
 }
 
-$('sidebar-toggle').addEventListener('click', () => {
+$('btn-routes').addEventListener('click', () => {
   setSidebarCollapsed(!$('sidebar').classList.contains('collapsed'));
-});
-$('sidebar-tab-btn').addEventListener('click', () => {
-  setSidebarCollapsed(false);
 });
 
 // ── Boot ──────────────────────────────────────────────────────
