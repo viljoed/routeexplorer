@@ -1,5 +1,6 @@
 # GPX Route Explorer
-
+A viewer for GPX files and images at points along the GPX route.
+![Social preview](./images/social_preview.jpg)
 ## Folder Layout
 
 Place `index.html` at your project root. The `Routes` folder sits beside it:
