@@ -13,8 +13,8 @@ project-root/
     │   ├── <any_name>.gpx              ← any single .gpx file (name doesn't matter)
     │   ├── image_file_locations.csv
     │   └── images/
-    │       ├── frame_00001.jpg
-    │       └── ...
+    │       ├── frame_00000.jpg
+    │       └── frame_00001.jpg...
     └── <next folder name>/
         ├── <any_name>.gpx
         ├── image_file_locations.csv
