@@ -195,12 +195,37 @@ html, body { height: 100%; background: var(--bg);
   position: relative; padding: 6px 14px 4px;
 }
 #profile-label {
-  position: absolute; top: 6px; left: 14px;
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
   font-family: 'DM Mono', monospace; font-size: 10px;
-  color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text); text-transform: uppercase; letter-spacing: 0.08em;
   pointer-events: none; z-index: 2;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px; padding: 2px 9px;
 }
 #elevation-chart { width: 100%; height: 100%; }
+
+/* ── Panel toggle buttons (hide/show) ── */
+.panel-toggle {
+  position: absolute; top: 6px; right: 10px; z-index: 3;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 5px;
+  color: var(--muted); width: 22px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 11px; line-height: 1; user-select: none;
+  transition: border-color 0.13s, color 0.13s;
+}
+.panel-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+#profile-wrap.panel-collapsed { flex: 0 0 28px; max-height: 28px; min-height: 28px; overflow: hidden; }
+#profile-wrap.panel-collapsed #elevation-chart { display: none; }
+#profile-wrap.panel-collapsed .panel-toggle { transform: rotate(180deg); }
+
+#image-area.panel-collapsed { flex: 0 0 28px; min-height: 28px; }
+#image-area.panel-collapsed #route-image,
+#image-area.panel-collapsed #empty-state,
+#image-area.panel-collapsed #no-image-msg,
+#image-area.panel-collapsed #image-meta { display: none !important; }
+#image-area.panel-collapsed .panel-toggle { transform: rotate(180deg); }
+
 
 /* ── Image area ── */
 #image-area {
@@ -243,7 +268,7 @@ html, body { height: 100%; background: var(--bg);
   flex-shrink: 0; padding: 9px 18px 13px;
   background: var(--surface); border-top: 1px solid var(--border);
 }
-#scrubber-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+#scrubber-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; position: relative; }
 
 .ctrl-btn {
   background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
@@ -257,7 +282,8 @@ html, body { height: 100%; background: var(--bg);
 
 #scrubber-pos {
   font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted);
-  flex-shrink: 0; min-width: 150px;
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  white-space: nowrap;
 }
 #scrubber-pos .cur { color: var(--accent2); }
 
@@ -321,7 +347,6 @@ html, body { height: 100%; background: var(--bg);
   <div id="sidebar" class="collapsed">
     <div id="sidebar-header">
       <h2>Route<br>Explorer</h2>
-      <p>GPX · Elevation · Images</p>
     </div>
     <div id="routes-label">Routes</div>
     <div id="route-list">
@@ -334,8 +359,8 @@ html, body { height: 100%; background: var(--bg);
     <div id="loading-bar"></div>
 
     <div id="topbar">
-      <button id="btn-routes">🗺 Routes</button>
-      <div id="route-title">Select a route</div>
+      <button id="btn-routes">🗺 Select Route</button>
+      <!-- <div id="route-title">Select a route</div> -->
       <div id="stats-bar">
         <div class="stat-pill">↔&nbsp;<b id="s-dist">—</b></div>
         <div class="stat-pill">↑&nbsp;<b id="s-gain">—</b></div>
@@ -347,11 +372,13 @@ html, body { height: 100%; background: var(--bg);
     <div id="map-wrap"><div id="map"></div></div>
 
     <div id="profile-wrap">
-      <div id="profile-label">Elevation Profile</div>
+      <div id="profile-label">0 / 0 m</div>
+      <button class="panel-toggle" id="btn-toggle-profile" title="Hide elevation profile">⌄</button>
       <canvas id="elevation-chart"></canvas>
     </div>
 
     <div id="image-area">
+      <button class="panel-toggle" id="btn-toggle-images" title="Hide images">⌄</button>
       <div id="empty-state">
         <div class="es-icon">🗺️</div>
         <p>Select a route from the panel<br>to load the map &amp; imagery</p>
@@ -424,6 +451,7 @@ const S = {
   totalDist: 0,
   images:    [],   // [{dist,lat,lon,fname,url}] sorted by dist
   pos:       0,    // 0..1
+  totalGain: 0,
   playing:   false,
   playTimer: null,
 };
@@ -613,10 +641,13 @@ async function loadRoute(name, allNames) {
 
   // ── Elevation stats ───────────────────────────────────
   let gain = 0, loss = 0;
+  pts[0].gain = 0;
   for (let i = 1; i < pts.length; i++) {
     const d = pts[i].ele - pts[i-1].ele;
     if (d > 0) gain += d; else loss -= d;
+    pts[i].gain = gain;
   }
+  S.totalGain = gain;
 
   // ── Update UI chrome ──────────────────────────────────
   const titleEl = $('route-title');
@@ -721,7 +752,8 @@ function interpolate(pos01) {
       const a = pts[i-1], b = pts[i];
       const t = (d - a.dist) / ((b.dist - a.dist) || 1);
       return { lat: a.lat + t*(b.lat-a.lat), lon: a.lon + t*(b.lon-a.lon),
-               ele: a.ele + t*(b.ele-a.ele), dist: d };
+               ele: a.ele + t*(b.ele-a.ele), dist: d,
+               gain: (a.gain||0) + t*((b.gain||0)-(a.gain||0)) };
     }
   }
   return { ...pts[pts.length-1] };
@@ -737,7 +769,7 @@ function drawMap(pts) {
   if (endMarker)   { map.removeLayer(endMarker);   endMarker   = null; }
 
   const lls = pts.map(p => [p.lat, p.lon]);
-  routeLayer = L.polyline(lls, { color: '#e8b84b', weight: 3, opacity: 0.85 }).addTo(map);
+  routeLayer = L.polyline(lls, { color: '#e8334b', weight: 3, opacity: 0.85 }).addTo(map);
   map.fitBounds(routeLayer.getBounds(), { padding: [28, 28] });
 
   const mkIcon = cls => L.divIcon({ className: '', html: `<div class="${cls}"></div>`,
@@ -925,11 +957,14 @@ function setPosition(pos01) {
 
   const d = pos01 * S.totalDist;
   $('scrubber-pos').innerHTML =
-    `<span class="cur">${fmtDist(d)}</span> / ${fmtDist(S.totalDist)}`;
+    `<span class="cur">${fmtKmNum(d)}</span> / ${fmtKmNum(S.totalDist)} km`;
 
   moveMapMarker(pos01);
   moveElevCursor(pos01);
   showImage(pos01);
+
+  const p = interpolate(pos01);
+  $('profile-label').textContent = `${Math.round(p.gain)} / ${Math.round(S.totalGain)} m`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -990,6 +1025,8 @@ function setLoadingBar(pct) {
   bar.style.opacity = pct === 0 ? '0' : '1';
 }
 function fmtDist(m) { return m >= 1000 ? (m/1000).toFixed(2)+' km' : Math.round(m)+' m'; }
+function fmtKm(m) { return (m/1000).toFixed(2)+' km'; }
+function fmtKmNum(m) { return (m/1000).toFixed(2); }
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ── Sidebar collapse ──────────────────────────────────────────
@@ -1000,6 +1037,18 @@ function setSidebarCollapsed(collapsed) {
 }
 $('btn-routes').addEventListener('click', () => {
   setSidebarCollapsed(!$('sidebar').classList.contains('collapsed'));
+});
+
+// ── Profile / image panel collapse ─────────────────────────────
+$('btn-toggle-profile').addEventListener('click', () => {
+  const wrap = $('profile-wrap');
+  const collapsed = wrap.classList.toggle('panel-collapsed');
+  $('btn-toggle-profile').title = collapsed ? 'Show elevation profile' : 'Hide elevation profile';
+});
+$('btn-toggle-images').addEventListener('click', () => {
+  const wrap = $('image-area');
+  const collapsed = wrap.classList.toggle('panel-collapsed');
+  $('btn-toggle-images').title = collapsed ? 'Show images' : 'Hide images';
 });
 
 // ── Boot ──────────────────────────────────────────────────────
