@@ -226,6 +226,13 @@ html, body { height: 100%; background: var(--bg);
 #image-area.panel-collapsed #image-meta { display: none !important; }
 #image-area.panel-collapsed .panel-toggle { transform: rotate(180deg); }
 
+/* Map expands to fill freed space when a panel below it is collapsed */
+#main:has(#profile-wrap.panel-collapsed) #map-wrap,
+#main:has(#image-area.panel-collapsed) #map-wrap,
+#main.map-expand #map-wrap {
+  flex: 1 1 auto; max-height: none;
+}
+
 
 /* ── Image area ── */
 #image-area {
@@ -1039,15 +1046,23 @@ $('btn-routes').addEventListener('click', () => {
 });
 
 // ── Profile / image panel collapse ─────────────────────────────
+function refreshMapExpand() {
+  const expand = $('profile-wrap').classList.contains('panel-collapsed') ||
+                 $('image-area').classList.contains('panel-collapsed');
+  $('main').classList.toggle('map-expand', expand);
+  setTimeout(() => { if (map) map.invalidateSize(); }, 260);
+}
 $('btn-toggle-profile').addEventListener('click', () => {
   const wrap = $('profile-wrap');
   const collapsed = wrap.classList.toggle('panel-collapsed');
   $('btn-toggle-profile').title = collapsed ? 'Show elevation profile' : 'Hide elevation profile';
+  refreshMapExpand();
 });
 $('btn-toggle-images').addEventListener('click', () => {
   const wrap = $('image-area');
   const collapsed = wrap.classList.toggle('panel-collapsed');
   $('btn-toggle-images').title = collapsed ? 'Show images' : 'Hide images';
+  refreshMapExpand();
 });
 
 // ── Boot ──────────────────────────────────────────────────────
