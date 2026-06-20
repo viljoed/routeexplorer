@@ -360,7 +360,7 @@ html, body { height: 100%; background: var(--bg);
 
     <div id="topbar">
       <button id="btn-routes">🗺 Select Route</button>
-      <!-- <div id="route-title">Select a route</div> -->
+      <div id="route-title">Select a route</div>
       <div id="stats-bar">
         <div class="stat-pill">↔&nbsp;<b id="s-dist">—</b></div>
         <div class="stat-pill">↑&nbsp;<b id="s-gain">—</b></div>
@@ -897,6 +897,7 @@ function showImage(pos01) {
   const noImg   = $('no-image-msg');
   const noTxt   = $('no-image-text');
   const meta    = $('image-meta');
+  const linkEl  = $('streetview-link');
 
   if (S.images.length === 0) {
     imgEl.style.display = 'none';
@@ -915,8 +916,6 @@ function showImage(pos01) {
   }
 
   if (nearest && bestD <= IMG_THRESHOLD) {
-    const linkEl = document.getElementById('streetview-link');
-
     imgEl.src = nearest.url;
     imgEl.style.display = 'block';
     imgEl.style.cursor = 'pointer';
